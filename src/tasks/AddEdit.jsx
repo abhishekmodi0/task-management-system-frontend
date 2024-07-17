@@ -105,7 +105,7 @@ function AddEdit() {
                         <div className="mb-3 col">
                             <label className="form-label">
                                 Status
-                                {id && <em className="ml-1">(Leave blank to keep the same password)</em>}
+                                {id && <em className="ml-1"></em>}
                             </label>
                             <select  name="status" {...register('status')} className={`form-control ${errors.status ? 'is-invalid' : ''}`} >
                                 <option value="0">Not Started</option>

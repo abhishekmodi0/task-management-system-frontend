@@ -20,6 +20,7 @@ function AccountLayout() {
                     <Routes>
                         <Route path="login" element={<Login />} />
                         <Route path="register" element={<Register />} />
+                        <Route path="admin/register" element={<Register />} />
                     </Routes>
                 </div>
             </div>

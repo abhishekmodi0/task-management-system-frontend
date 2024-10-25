@@ -1,23 +1,35 @@
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 
+import Pagination from '_components/Pagination';
 import { taskActions } from '_store';
 
 export { List };
 
 function List() {
-    const tasks = useSelector(x => x.tasks.list);
     const dispatch = useDispatch();
+    const [currentPage, setCurrentPage] = useState(1);
+    const { isAdmin, userId } = useSelector(x => x.auth);
+    const tasks = useSelector(x => x.tasks.list);
+    const { projectId } = useParams();
+    const pageLength = 10;
+
+    const currentTableData = useMemo(() => {
+        const firstPageIndex = (currentPage - 1) * pageLength;
+        const lastPageIndex = firstPageIndex + pageLength;
+        return tasks?.value?.slice(firstPageIndex, lastPageIndex);
+    });
 
     useEffect(() => {
-        dispatch(taskActions.getAll());
+        dispatch(taskActions.getAll(projectId));
     }, []);
 
     return (
         <div>
             <h1>Your Tasks</h1>
-            <Link to="create" className="btn btn-sm btn-success mb-2">Add Task</Link>
+            <Link to="/project" className="btn btn-sm btn-warning mb-2 float-start" > Back to projects</Link>
+            <Link to="create" className="float-end btn btn-sm btn-success mb-2">Add Task</Link>
             <table className="table table-striped">
                 <thead>
                     <tr>
@@ -29,20 +41,20 @@ function List() {
                     </tr>
                 </thead>
                 <tbody>
-                    {tasks?.value?.map(task =>
+                    {(currentTableData || []).map(task =>
                         <tr key={task.id}>
                             <td>{task.title}</td>
                             <td>{task.description}</td>
-                            <td>{task.due_date}</td>
-                            <td>{task.status === 0 ? "Not Started" : task.status === 1 ? "In Progress" : "Completed"  }</td>
+                            <td>{task.dueDate}</td>
+                            <td>{task.status === 1 ? "Not Started" : task.status === 2 ? "In Progress" : "Completed"  }</td>
                             <td style={{ whiteSpace: 'nowrap' }}>
                                 <Link to={`edit/${task.id}`} className="btn btn-sm btn-primary me-1">Edit</Link>
-                                <button onClick={() => dispatch(taskActions.delete(task.id))} className="btn btn-sm btn-danger" style={{ width: '60px' }} disabled={task.isDeleting}>
+                                {(isAdmin || task.ownedBy === userId) ? <button onClick={() => dispatch(taskActions.delete(task.id))} className="btn btn-sm btn-danger" style={{ width: '60px' }} disabled={task.isDeleting}>
                                     {task.isDeleting 
                                         ? <span className="spinner-border spinner-border-sm"></span>
                                         : <span>Delete</span>
                                     }
-                                </button>
+                                </button>: ''}
                             </td>
                         </tr>
                     )}
@@ -55,6 +67,12 @@ function List() {
                     }
                 </tbody>
             </table>
+            {(tasks?.value && tasks?.value.length > 0) ? <Pagination
+            currentPage={currentPage}
+            totalCount={tasks.value?.length}
+            pageSize={pageLength}
+            onPageChange={page => setCurrentPage(page)}
+        />: ''}
         </div>
     );
 }

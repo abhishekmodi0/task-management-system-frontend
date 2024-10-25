@@ -8,7 +8,6 @@ export const fetchWrapper = {
 };
 
 function request(method) {
-    debugger;
     return (url, body) => {
         const requestOptions = {
             method,
@@ -45,7 +44,7 @@ async function handleResponse(response) {
     const data = isJson ? await response.json() : null;
     // check for error response
     if (!response.ok) {
-        if ([401, 400, 403].includes(response.status) && authToken()) {
+        if ([401, 403].includes(response.status) && authToken()) {
             // auto logout if 401 Unauthorized or 403 Forbidden response returned from api
             const logout = () => store.dispatch(authActions.logout());
             logout();

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation  } from 'react-router-dom';
 import { useForm } from "react-hook-form";
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -24,9 +24,13 @@ function Register() {
             .required('Email is required'),
         password: Yup.string()
             .required('Password is required')
-            .min(6, 'Password must be at least 6 characters')
+            .min(6, 'Password must be at least 6 characters'),
+        confirmPassword: Yup.string()
+            .oneOf([Yup.ref('password'), null], 'Passwords must match')
+
     });
     const formOptions = { resolver: yupResolver(validationSchema) };
+    const currentLocation = useLocation();
 
     // get functions to build form with useForm() hook
     const { register, handleSubmit, formState } = useForm(formOptions);
@@ -35,13 +39,14 @@ function Register() {
     async function onSubmit(data) {
         dispatch(alertActions.clear());
         try {
+            data.isAdmin = data.isAdmin ? data.isAdmin : false;
+            delete data.confirmPassword 
             await dispatch(taskActions.register(data)).unwrap();
 
             // redirect to login page and display success alert
             history.navigate('/account/login');
             dispatch(alertActions.success({ message: 'Registration successful', showAfterRedirect: true }));
         } catch (error) {
-            console.log('error======>   ', error)
             dispatch(alertActions.error(error));
         }
     }
@@ -76,6 +81,16 @@ function Register() {
                         <input name="password" type="password" {...register('password')} className={`form-control ${errors.password ? 'is-invalid' : ''}`} />
                         <div className="invalid-feedback">{errors.password?.message}</div>
                     </div>
+                    <div className="mb-3">
+                        <label className="form-label">Confirm Password</label>
+                        <input name="confirmPassword" type="password" {...register('confirmPassword')} className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`} />
+                        <div className="invalid-feedback">{errors.confirmPassword?.message}</div>
+                    </div>
+                    { currentLocation.pathname === "/account/admin/register" && 
+                    <div className="mb-3 form-check form-switch">
+                        <input className="form-check-input" {...register('isAdmin')} type="checkbox" role="switch" id="isAdmin" checked/>
+                        <label className="form-check-label" htmlFor="isAdmin">Admin</label>
+                    </div>}  
                     <button disabled={isSubmitting} className="btn btn-primary">
                         {isSubmitting && <span className="spinner-border spinner-border-sm me-1"></span>}
                         Register

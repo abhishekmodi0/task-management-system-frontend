@@ -21,13 +21,15 @@ export const authReducer = slice.reducer;
 function createInitialState() {
     return {
         // initialize state from local storage to enable user to stay logged in
-        value: JSON.parse(localStorage.getItem('auth'))
+        value: JSON.parse(localStorage.getItem('auth')),
+        isAdmin: JSON.parse(localStorage.getItem('auth'))?.[0].user.isAdmin === 1,
+        userId: JSON.parse(localStorage.getItem('auth'))?.[0].user.id
     }
 }
 
 function createReducers() {
     return {
-        setAuth
+        setAuth,
     };
 
     function setAuth(state, action) {
@@ -60,6 +62,7 @@ function createExtraActions() {
                     // get return url from location state or default to home page
                     const { from } = history.location.state || { from: { pathname: '/' } };
                     history.navigate(from);
+                    window.location.reload();
                 } catch (error) {
                     dispatch(alertActions.error(error));
                 }

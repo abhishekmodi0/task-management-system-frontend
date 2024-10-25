@@ -3,8 +3,10 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { history } from './_helpers';
 import { Nav, Alert, PrivateRoute } from './_components';
 import { Home } from 'home';
-import { AccountLayout } from './account';
-import { TasksLayout } from './tasks';
+import { Profile } from 'profile';
+import { AccountLayout } from './account/';
+import { ProjectsLayout } from './projects'
+
 
 export { App };
 
@@ -23,11 +25,13 @@ function App() {
                     {/* private */}
                     <Route element={<PrivateRoute />}>
                         <Route path="/" element={<Home />} />
-                        <Route path="tasks/*" element={<TasksLayout />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="project/*" element={<ProjectsLayout />} >
+                        </Route>
                     </Route>
                     {/* public */}
                     <Route path="account/*" element={<AccountLayout />} />
-                    <Route path="*" element={<Navigate to="/" />} />
+                    <Route path="*" element={<Navigate to="/" replace/>} />
                 </Routes>
             </div>
         </div>

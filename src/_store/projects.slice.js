@@ -1,10 +1,11 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+
+import { history, fetchWrapper } from '_helpers';
 import { alertActions } from '_store';
-import { fetchWrapper, history } from '_helpers';
 
 // create slice
 
-const name = 'tasks';
+const name = 'projects';
 const initialState = createInitialState();
 const extraActions = createExtraActions();
 const extraReducers = createExtraReducers();
@@ -12,17 +13,18 @@ const slice = createSlice({ name, initialState, extraReducers });
 
 // exports
 
-export const taskActions = { ...slice.actions, ...extraActions };
-export const tasksReducer = slice.reducer;
+export const projectActions = { ...slice.actions, ...extraActions };
+export const projectReducer = slice.reducer;
 
 // implementation
 
 function createInitialState() {
     return {
-        list: null,
-        item: null,
-        formFieldDetail: {},
-        profile:{}
+        list: [],
+        item: null, 
+        users: [],
+        projectUsers:[],
+        dashboard: {}
     }
 }
 
@@ -30,58 +32,43 @@ function createExtraActions() {
     const baseUrl = `${process.env.REACT_APP_API_BASE_URL}/api`;
 
     return {
-        register: register(),
         getAll: getAll(),
         getById: getById(),
         update: update(),
         delete: _delete(),
-        createTask : createTask(),
-        getFormFieldDetail : getFormFieldDetail(),
-        updateProfile: updateProfile(),
+        createProject : createProject(),
+        getAllUsers: getAllUsers(),
+        getAllUsersByProject: getAllUsersByProject(),
+        getDashboard: getDashboard(),
     };
-
-    function updateProfile() {
-        return createAsyncThunk(
-            `${name}/updateProfile`,
-            async (user) => await fetchWrapper.put(`${baseUrl}/updateProfile`, user)
-        );
-    }
-
-    function register() {
-        return createAsyncThunk(
-            `${name}/register`,
-            async (user) => await fetchWrapper.post(`${baseUrl}/register`, user)
-        );
-    }
 
     function getAll() {
         return createAsyncThunk(
             `${name}/getAll`,
-            async (projectId) => await fetchWrapper.get(`${baseUrl}/tasks/${projectId}/list`)
+            async () => await fetchWrapper.get(`${baseUrl}/${name}/getAllProjects`)
         );
     }
 
     function getById() {
         return createAsyncThunk(
             `${name}/getById`,
-            async (id) => await fetchWrapper.get(`${baseUrl}/tasks/getById/${id}`)
+            async (id) => await fetchWrapper.get(`${baseUrl}/${name}/getById/${id}`)
         );
     }
 
     function update() {
         return createAsyncThunk(
             `${name}/update`,
-            async function ({ id, projectId, data, message }, { dispatch }) {
+            async function ({ id, data, message }, { dispatch }) {
             dispatch(alertActions.clear());
             try {
-                data.projectId = projectId;
-                await fetchWrapper.put(`${baseUrl}/tasks/edit/${id}`, data);
-                history.navigate(`/project/${projectId}/tasks`);
+                await fetchWrapper.put(`${baseUrl}/${name}/edit/${id}`, data);
+                history.navigate('/project');
                 dispatch(alertActions.success({ message, showAfterRedirect: true }));
             } catch(error) {
                 dispatch(alertActions.error(error));
             }
-        });   
+        });
     }
 
     // prefixed with underscore because delete is a reserved word in javascript
@@ -89,33 +76,46 @@ function createExtraActions() {
         return createAsyncThunk(
             `${name}/delete`,
             async function (id, { getState, dispatch }) {
-                await fetchWrapper.delete(`${baseUrl}/tasks/delete/${id}`);
+                await fetchWrapper.delete(`${baseUrl}/${name}/delete/${id}`);
             }
         );
     }
 
-    function createTask() {
+    function createProject() {
         return createAsyncThunk(
-            `${name}/createTask`,
-            async function ({ projectId, data, message }, { dispatch }) {
+            `${name}/createProject`,
+            async function ({ id, data, message }, { dispatch }) {
             dispatch(alertActions.clear());
             try {
-                data.projectId = projectId;
-                await fetchWrapper.post(`${baseUrl}/tasks/create`, data);
-                history.navigate(`/project/${projectId}/tasks`);
+                await fetchWrapper.post(`${baseUrl}/${name}/create`, data);
+                history.navigate('/project');
                 dispatch(alertActions.success({ message, showAfterRedirect: true }));
             } catch(error) {
                 dispatch(alertActions.error(error));
             }
         });   
     }
-    
-    function getFormFieldDetail() {
+
+    function getAllUsers() {
         return createAsyncThunk(
-            `${name}/getFormFieldDetail`,
-            async () => await fetchWrapper.get(`${baseUrl}/tasks/getFormFields`)
-        );    
-    }  
+            `${name}/getAllUsers`,
+            async () => await fetchWrapper.get(`${baseUrl}/${name}/users`)
+        );
+    }
+
+    function getAllUsersByProject() {
+        return createAsyncThunk(
+            `${name}/getAllUsersByProject`,
+            async (projectId) => await fetchWrapper.get(`${baseUrl}/${name}/users/${projectId}`)
+        );
+    }
+
+    function getDashboard() {
+        return createAsyncThunk(
+            `${name}/getDashboard`,
+            async () => await fetchWrapper.get(`${baseUrl}/getDashboardStats`)
+        );
+    }
 }
 
 function createExtraReducers() {
@@ -123,8 +123,10 @@ function createExtraReducers() {
         getAll();
         getById();
         _delete();
-        getFormFieldDetail();
-        updateProfile();
+        getAllUsers();
+        getAllUsersByProject();
+        getDashboard();
+
 
         function getAll() {
             var { pending, fulfilled, rejected } = extraActions.getAll;
@@ -170,32 +172,47 @@ function createExtraReducers() {
                 });
         }
 
-        function getFormFieldDetail() {
-            var { pending, fulfilled, rejected } = extraActions.getFormFieldDetail;
+        function getAllUsers() {
+            var { pending, fulfilled, rejected } = extraActions.getAllUsers;
             builder
                 .addCase(pending, (state) => {
-                    state.formFieldDetail = { loading: true };
+                    state.users = { loading: true };
                 })
                 .addCase(fulfilled, (state, action) => {
-                    state.formFieldDetail =  action.payload ;
+                    state.users =  { value: action.payload };   
                 })
                 .addCase(rejected, (state, action) => {
-                    state.formFieldDetail = { error: action.error };
+                    state.users = { error: action.error };
                 });
         }
 
-        function updateProfile() {
-            var { pending, fulfilled, rejected } = extraActions.updateProfile;
+        function getAllUsersByProject() {
+            var { pending, fulfilled, rejected } = extraActions.getAllUsersByProject;
             builder
                 .addCase(pending, (state) => {
-                    state.profile = { loading: true };
+                    state.users = { loading: true };
                 })
                 .addCase(fulfilled, (state, action) => {
-                    state.profile =  action.payload ;
+                    state.projectUsers =  { value: action.payload };   
                 })
                 .addCase(rejected, (state, action) => {
-                    state.profile = { error: action.error };
+                    state.users = { error: action.error };
                 });
         }
+
+        function getDashboard() {
+            var { pending, fulfilled, rejected } = extraActions.getDashboard;
+            builder
+                .addCase(pending, (state) => {
+                    state.dashboard = { loading: true };
+                })
+                .addCase(fulfilled, (state, action) => {
+                    state.dashboard =   action.payload;   
+                })
+                .addCase(rejected, (state, action) => {
+                    state.dashboard = { error: action.error };
+                });
+        }
+
     }
 }

@@ -1,29 +1,57 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import {  useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
 import { useSelector, useDispatch } from 'react-redux';
 
 import { history } from '_helpers';
-import { taskActions, alertActions } from '_store';
+import { taskActions, projectActions } from '_store';
 
 export { AddEdit };
 
 function AddEdit() {
-    const { id } = useParams();
-    const [title, setTitle] = useState();
-    const dispatch = useDispatch();
-    const task = useSelector(x => x.tasks?.item);
+    const { projectId, id } = useParams();
+    const [title, setTitle] = useState("Add Task");
 
+    const dispatch = useDispatch();
+
+    const formFields = useSelector(x => x.tasks.formFieldDetail);
+    const { value: users } = useSelector(x => x.project.projectUsers);
+    const task = useSelector(x => x.tasks?.item);
+    const { isAdmin, userId } = useSelector(x => x.auth);
+    
     // form validation rules 
     const validationSchema = Yup.object().shape({
         title: Yup.string()
             .required('Title is required'),
         description: Yup.string()
             .required('Description is required'),
-        dueDate: Yup.date().required("Due Date can not be empty"),
-        status: Yup.string().required("Please select status")
+        dueDate: Yup
+        .string()
+        .required('Due Date is required')
+        .matches(/^(0?[1-9]|[12][0-9]|3[01])[-]((0?[1-9]|1[012])[-](19|20)?[0-9]{2})*$/,
+            "Date must be in DD-MM-YYYY format")
+        .test(
+            "dates-test",
+            "Due date can not be in past",
+            (value, context) => {
+                let startDate = new Date();
+                let d = value.split("-");
+                let endDate = new Date(d[2] + '/' + d[1] + '/' + d[0]);
+                return endDate > startDate;
+        }),        
+        status: Yup.string()
+        .test('len', 'Please select Status', val => val.length === 1),
+        priority: Yup.string()
+        .test('len', 'Please select Priority Level', val => val.length === 1),
+        tagName: Yup.string()
+        .test('len', 'Please select Tag Name', val => val.length === 1),
+        assignedTo: Yup.string().when([], {
+            is: () => isAdmin,
+            then: Yup.string().test('len', 'Please select Assigned To', val => val.length <= 6),
+            otherwise: Yup.string().notRequired(),
+        }),
     });
     const formOptions = { resolver: yupResolver(validationSchema) };
 
@@ -32,50 +60,28 @@ function AddEdit() {
     const { errors, isSubmitting } = formState;
 
     useEffect(() => {
+        dispatch(projectActions.getAllUsersByProject(projectId));
+        dispatch(taskActions.getFormFieldDetail());
         if (id) {
             setTitle('Edit Task');
             // fetch user details into redux state and 
             // populate form fields with reset()
             dispatch(taskActions.getById(id)).unwrap()
                 .then(task => {
-                    const {title, description, status, due_date} = task[0];
-
-                    reset({title, description, status, dueDate: due_date})
+                    const {userId, title, description, status, dueDate, priorityLevel, tag} = task[0];
+                    reset({assignedTo: userId, title, description, status, dueDate, priority: priorityLevel, tagName: tag})
                 });
         } else {
             setTitle('Add Task');
         }
     }, []);
 
-    function formateDate (day){
-        const date = new Date(day);
-        const yyyy = date.getFullYear();
-        let mm = date.getMonth() + 1; // Months start at 0!
-        let dd = date.getDate();
-        if (dd < 10) dd = '0' + dd;
-        if (mm < 10) mm = '0' + mm;
-        return dd + '-' + mm + '-' + yyyy;
-    }
-
     async function onSubmit(data) {
-        dispatch(alertActions.clear());
-        try {
-            // create or update user based on id param
-            data.dueDate = formateDate(data.dueDate);
-            let message;
-            if (id) {
-                await dispatch(taskActions.update({ id, data })).unwrap();
-                message = 'Task updated';
-            } else {
-                await dispatch(taskActions.createTask({data})).unwrap();
-                message = 'Task added';
-            }
-
-            // redirect to user list with success message
-            history.navigate('/tasks');
-            dispatch(alertActions.success({ message, showAfterRedirect: true }));
-        } catch (error) {
-            dispatch(alertActions.error(error));
+        if (id) {
+            return dispatch(taskActions.update({ id, projectId, data, message: 'Task updated'  })).unwrap();
+        } else {
+            data.assignedTo = isAdmin ? data.assignedTo : userId;
+            return dispatch(taskActions.createTask({projectId, data, message: 'Task Added' })).unwrap();
         }
     }
 
@@ -99,7 +105,7 @@ function AddEdit() {
                     <div className="row">
                         <div className="mb-3 col">
                             <label className="form-label">Due Date</label>
-                            <input name="dueDate" type="text" {...register('dueDate')} className={`form-control ${errors.dueDate ? 'is-invalid' : ''}`} />
+                            <input name="dueDate" disabled={!isAdmin && id != undefined} type="text" {...register('dueDate')} className={`form-control ${errors.dueDate ? 'is-invalid' : ''}`} />
                             <div className="invalid-feedback">{errors.dueDate?.message}</div>
                         </div>
                         <div className="mb-3 col">
@@ -107,22 +113,68 @@ function AddEdit() {
                                 Status
                                 {id && <em className="ml-1"></em>}
                             </label>
-                            <select  name="status" {...register('status')} className={`form-control ${errors.status ? 'is-invalid' : ''}`} >
-                                <option value="0">Not Started</option>
-                                <option value="1">In Progress</option>
-                                <option value="2">Completed</option>
+                            <select defaultValue={'DEFAULT'}  name="status" {...register('status')} className={`form-control ${errors.status ? 'is-invalid' : ''}`} >
+                                <option value={'DEFAULT'} disabled>Select</option>
+                                {
+                                    formFields?.statuses?.map(e => <option key={`${e.id}_${e.status}`}  value={e.id}>{e.status}</option>)
+                                }
                             </select>
-                            
                             <div className="invalid-feedback">{errors.status?.message}</div>
                         </div>
                     </div>
+                    <div className="row">
+                        <div className="mb-3 col">
+                            <label className="form-label">
+                                Priority
+                                {id && <em className="ml-1"></em>}
+                            </label>
+                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id != undefined} name="priority" {...register('priority')} className={`form-control ${errors.priority ? 'is-invalid' : ''}`} >
+                                <option value={'DEFAULT'} disabled>Select</option>
+                                {
+                                    formFields?.priorityLevels?.map(e => <option key={`${e.id}_${e.priorityLevel}`}  value={e.id}>{e.priorityLevel}</option>)
+                                }
+                            </select>
+                            <div className="invalid-feedback">{errors.priority?.message}</div>
+                        </div>
+                        <div className="mb-3 col">
+                            <label className="form-label">
+                                Tag Name
+                                {id && <em className="ml-1"></em>}
+                            </label>
+                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id != undefined} name="tagName" {...register('tagName')} className={`form-control ${errors.tagName ? 'is-invalid' : ''}`} >
+                                <option value={'DEFAULT'} disabled>Select</option>
+                                {
+                                    formFields?.tagName?.map(e => <option key={`${e.id}_${e.tagName}`}  value={e.id}>{e.tagName}</option>)
+                                }
+                            </select>
+                            <div className="invalid-feedback">{errors.tagName?.message}</div>
+                        </div>
+                    </div>
+                    {isAdmin && <div className="row">
+                        <div className="mb-3 col">
+                            <label className="form-label">
+                                Assigned To
+                                {id && <em className="ml-1"></em>}
+                            </label>
+                            <select defaultValue={'defaultValue'}  name="assignedTo" {...register('assignedTo')} className={`form-control ${errors.assignedTo ? 'is-invalid' : ''}`} >
+                                <option value={'defaultValue'} disabled>Select</option>
+                                {   
+                                    (users || []).map(e => <option key={`${e.id}_${e.fullName}`}  value={e.id}>{e.fullName}</option>)
+                                }
+                            </select>
+                            <div className="invalid-feedback">{errors.assignedTo?.message}</div>
+                        </div>
+                        <div className="mb-3 col">
+                            
+                        </div>
+                    </div>}
                     <div className="mb-3">
                         <button type="submit" disabled={isSubmitting} className="btn btn-primary me-2">
                             {isSubmitting && <span className="spinner-border spinner-border-sm me-1"></span>}
                             Save
                         </button>
                         <button onClick={() => reset()} type="button" disabled={isSubmitting} className="btn btn-secondary">Reset</button>
-                        <Link to="/tasks" className="btn btn-link">Cancel</Link>
+                        <button className="btn btn-link" onClick={() => { history.navigate(`/project/${projectId}/tasks`)}} >Cancel</button>
                     </div>
                 </form>
             }

@@ -67,7 +67,7 @@ function AddEdit() {
 
     async function onSubmit(data) {
         if (id) {
-            if(JSON.stringify(data.assignedTo) == JSON.stringify(projectUsers)){
+            if(JSON.stringify(data.assignedTo) === JSON.stringify(projectUsers)){
                 data.recordsToBeDeleted = [];
                 data.newRecordsAdded = false;
             } else {

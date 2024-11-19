@@ -13,7 +13,7 @@ function List() {
     const { isAdmin, userId } = useSelector(x => x.auth);
     const tasks = useSelector(x => x.tasks.list);
     const { projectId } = useParams();
-    const pageLength = 10;
+    const pageLength = 5;
 
     const currentTableData = useMemo(() => {
         const firstPageIndex = (currentPage - 1) * pageLength;

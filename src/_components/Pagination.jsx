@@ -29,7 +29,7 @@ const Pagination = props => {
 
   let lastPage = paginationRange[paginationRange.length - 1];
   return (
-    <ul
+    <ul style={{'cursor': 'pointer'}}
       className={'pagination'}
     >
       <li className={(currentPage === 1) ? 'page-item disabled' : 'page-item'}>

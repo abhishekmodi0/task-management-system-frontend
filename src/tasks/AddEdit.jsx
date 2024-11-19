@@ -105,7 +105,7 @@ function AddEdit() {
                     <div className="row">
                         <div className="mb-3 col">
                             <label className="form-label">Due Date</label>
-                            <input name="dueDate" disabled={!isAdmin && id != undefined} type="text" {...register('dueDate')} className={`form-control ${errors.dueDate ? 'is-invalid' : ''}`} />
+                            <input name="dueDate" disabled={!isAdmin && id !== undefined} type="text" {...register('dueDate')} className={`form-control ${errors.dueDate ? 'is-invalid' : ''}`} />
                             <div className="invalid-feedback">{errors.dueDate?.message}</div>
                         </div>
                         <div className="mb-3 col">
@@ -128,7 +128,7 @@ function AddEdit() {
                                 Priority
                                 {id && <em className="ml-1"></em>}
                             </label>
-                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id != undefined} name="priority" {...register('priority')} className={`form-control ${errors.priority ? 'is-invalid' : ''}`} >
+                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id !== undefined} name="priority" {...register('priority')} className={`form-control ${errors.priority ? 'is-invalid' : ''}`} >
                                 <option value={'DEFAULT'} disabled>Select</option>
                                 {
                                     formFields?.priorityLevels?.map(e => <option key={`${e.id}_${e.priorityLevel}`}  value={e.id}>{e.priorityLevel}</option>)
@@ -141,7 +141,7 @@ function AddEdit() {
                                 Tag Name
                                 {id && <em className="ml-1"></em>}
                             </label>
-                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id != undefined} name="tagName" {...register('tagName')} className={`form-control ${errors.tagName ? 'is-invalid' : ''}`} >
+                            <select defaultValue={'DEFAULT'} disabled={!isAdmin && id !== undefined} name="tagName" {...register('tagName')} className={`form-control ${errors.tagName ? 'is-invalid' : ''}`} >
                                 <option value={'DEFAULT'} disabled>Select</option>
                                 {
                                     formFields?.tagName?.map(e => <option key={`${e.id}_${e.tagName}`}  value={e.id}>{e.tagName}</option>)

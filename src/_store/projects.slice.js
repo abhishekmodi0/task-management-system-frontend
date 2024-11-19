@@ -75,8 +75,14 @@ function createExtraActions() {
     function _delete() {
         return createAsyncThunk(
             `${name}/delete`,
-            async function (id, { getState, dispatch }) {
-                await fetchWrapper.delete(`${baseUrl}/${name}/delete/${id}`);
+            async function ( id , { dispatch }) {
+                dispatch(alertActions.clear());
+                try{
+                    await fetchWrapper.delete(`${baseUrl}/${name}/delete/${id}`);
+                    dispatch(alertActions.success({ message: 'Project deleted', showAfterRedirect: true }));
+                } catch (error){
+                    dispatch(alertActions.error(error));
+                }
             }
         );
     }
